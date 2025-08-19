@@ -9,6 +9,7 @@ export default function CustomerDashboard() {
     <div className="p-6 text-center">
       <h1 className="text-2xl font-bold">Customer Dashboard</h1>
       <p className="mt-4">Logged in as: {session?.user?.email}</p>
+      <p className="mt-2">Role: {session?.user?.role}</p>
       <button
         onClick={() => signOut()}
         className="mt-6 px-4 py-2 bg-red-500 text-white rounded"

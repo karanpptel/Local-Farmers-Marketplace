@@ -1,66 +1,55 @@
 "use client";
 
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import {SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { SignUpSchema, signUpSchema } from "@/lib/validations/auth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 
 export default function SignUpPage() {
-  const [form, setForm] = useState({ 
-    name: "", 
-    email: "", 
-    password: "",
-    role: "CUSTOMER" // Default role
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
-  const { data: session, status } = useSession();
-  
+
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if(status === 'authenticated'){
-        const role = session.user?.role;
-      if (role === "ADMIN") router.push("/admin");
-      else if (role === "FARMER") router.push("/farmer");
-      else router.push("/customer"); // default CUSTOMER
+  const { register, handleSubmit,setError, formState: { errors, isSubmitting }} = useForm<SignUpSchema>({
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "CUSTOMER", // Default role
+    },
+    resolver : zodResolver(signUpSchema)
+  });
 
-    }
-  },[ status, session, router ]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
+  const onSubmit: SubmitHandler<SignUpSchema> = async (data) => {
     setLoading(true);
-
     try {
-      // First, create the user account
-      const res = await fetch("/api/auth/signup", {
+      const response = await fetch("/api/auth/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setSuccess("Account created successfully! Signing you in...");
-        
-        // Auto-login after successful signup
+       if (response.ok) {
+         
+    // Auto-login after successful signup
         const result = await signIn("credentials", {
-          email: form.email,
-          password: form.password,
+          email: data.email,
+          password: data.password,
           redirect: false,
         });
 
         if (result?.error) {
-          setError("Account created but login failed. Please try signing in manually.");
+           setError("email", {
+                    type: "manual",
+                    message: result.error || "Signup failed. Please try again.",
+                   });
           setTimeout(() => {
             router.push("/login");
           }, 1000);
@@ -68,20 +57,101 @@ export default function SignUpPage() {
           // Successful login, role-based redirect will run automatically
         }
       } else {
-        setError(data.error || "Something went wrong during signup");
-      }
+        setError("email", {
+          type: "manual",
+          message: "Signup failed. Please try again.",
+        });
+        }
+    
     } catch (error) {
       console.error("Signup error:", error);
-      setError("Network error. Please try again.");
+      setError("email", {
+        type: "manual",
+        message: "Network error. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Password validation
-  const isPasswordValid = form.password.length >= 6;
-  const isFormValid = form.name && form.email && isPasswordValid;
 
+
+  // const [form, setForm] = useState({ 
+  //   name: "", 
+  //   email: "", 
+  //   password: "",
+  //   role: "CUSTOMER" // Default role
+  // });
+  // const [error, setError] = useState<string | null>(null);
+  // const [loading, setLoading] = useState(false);
+  // const [success, setSuccess] = useState<string | null>(null);
+  // const { data: session, status } = useSession();
+  
+  // const router = useRouter();
+
+  // useEffect(() => {
+  //   if(status === 'authenticated'){
+  //       const role = session.user?.role;
+  //     if (role === "ADMIN") router.push("/admin");
+  //     else if (role === "FARMER") router.push("/farmer");
+  //     else router.push("/customer"); // default CUSTOMER
+
+  //   }
+  // },[ status, session, router ]);
+
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  //   setForm({ ...form, [e.target.name]: e.target.value });
+  // };
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setError(null);
+  //   setSuccess(null);
+  //   setLoading(true);
+
+  //   try {
+  //     // First, create the user account
+  //     const res = await fetch("/api/auth/signup", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(form),
+  //     });
+
+  //     const data = await res.json();
+
+  //     if (res.ok) {
+  //       setSuccess("Account created successfully! Signing you in...");
+        
+  //       // Auto-login after successful signup
+  //       const result = await signIn("credentials", {
+  //         email: form.email,
+  //         password: form.password,
+  //         redirect: false,
+  //       });
+
+  //       if (result?.error) {
+  //         setError("Account created but login failed. Please try signing in manually.");
+  //         setTimeout(() => {
+  //           router.push("/login");
+  //         }, 1000);
+  //       } else {
+  //         // Successful login, role-based redirect will run automatically
+  //       }
+  //     } else {
+  //       setError(data.error || "Something went wrong during signup");
+  //     }
+  //   } catch (error) {
+  //     console.error("Signup error:", error);
+  //     setError("Network error. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // // Password validation
+  // const isPasswordValid = form.password.length >= 6;
+  // const isFormValid = form.name && form.email && isPasswordValid;
+  
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-md space-y-6 p-8 bg-white shadow-lg rounded-lg">
@@ -90,69 +160,52 @@ export default function SignUpPage() {
           <p className="text-gray-600 mt-2">Join our local farmers marketplace</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 text-red-700 bg-red-100 border border-red-300 rounded">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           
-          {success && (
-            <div className="p-3 text-green-700 bg-green-100 border border-green-300 rounded">
-              {success}
-            </div>
+          {errors.root && (
+            <p className="text-red-500 text-sm">{errors.root.message}</p>
           )}
+
 
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
               Full Name
             </label>
-            <input
+            <Input
               type="text"
-              id="name"
-              name="name"
               placeholder="Enter your full name"
-              value={form.name}
-              onChange={handleChange}
+              {...register("name")}
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
             />
+            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
           </div>
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email Address
             </label>
-            <input
+            <Input
               type="email"
-              id="email"
-              name="email"
-              placeholder="Enter your email"
-              value={form.email}
-              onChange={handleChange}
+              placeholder="Enter your email address"
+              {...register("email")}
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
+              
             />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
-            <input
+            <Input
               type="password"
-              id="password"
-              name="password"
-              placeholder="Create a password (min. 6 characters)"
-              value={form.password}
-              onChange={handleChange}
+              placeholder="Enter your password"
+              {...register("password")}
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-              minLength={6}
+
             />
-            {form.password && !isPasswordValid && (
-              <p className="text-red-500 text-sm mt-1">Password must be at least 6 characters</p>
-            )}
+            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
           </div>
 
           <div>
@@ -160,24 +213,24 @@ export default function SignUpPage() {
               Account Type
             </label>
             <select
-              id="role"
-              name="role"
-              value={form.role}
-              onChange={handleChange}
+              {...register("role")}
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="CUSTOMER">Customer - Buy from local farmers</option>
               <option value="FARMER">Farmer - Sell your products</option>
+              <option value="ADMIN">Admin</option>
             </select>
           </div>
 
-          <button
+         
+
+          <Button
             type="submit"
-            disabled={loading || !isFormValid}
+            disabled={isSubmitting}
             className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
           >
             {loading ? "Creating Account..." : "Create Account"}
-          </button>
+          </Button>
         </form>
 
         <div className="text-center">

@@ -5,6 +5,7 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { signInSchema } from "@/lib/validations/auth";
 
 // Helper to check required env vars
 function checkEnvVar(name: string) {
@@ -42,17 +43,24 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
 
-      async authorize(
-        credentials: Record<"email" | "password", string> | undefined
-      ) {
+      async authorize(credentials: Record<"email" | "password", string> | undefined) {
         if (!credentials?.email || !credentials?.password) {
           console.error("Missing email or password in credentials.");
           return null;
         }
 
+        // Validate credentials using Zod schema
+        const parsed = signInSchema.safeParse(credentials);
+        if (!parsed.success) {
+          console.error("Invalid credentials format:", parsed.error.issues);
+          return null;
+        }
+
+        const { email, password } = parsed.data;
+
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: { email },
           });
 
           // Type safety: check user and password
@@ -61,20 +69,18 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          const isValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
+          const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
-            console.error("Invalid password for user:", credentials.email);
+            console.error("Invalid password for user:", email);
             return null;
           }
+
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role || "CUSTOMER",
-          }; // Default role to "CUSTOMER"
+          };
         } catch (error) {
           console.error("Error authenticating user:", error);
           return null;
@@ -89,23 +95,25 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-
-        // Type safety: add role if available, default to "CUSTOMER"
         token.role = user.role || "CUSTOMER";
       }
       return token;
     },
 
     async session({ session, token }) {
-      if (session.user) {
-        // Default role to "CUSTOMER" if undefined
-        session.user.role = token.role || "CUSTOMER";
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string || "CUSTOMER";
       }
       return session;
     },
 
     async redirect({ url, baseUrl }) {
-       // Always send users to /dashboard after login
+      // Handle relative URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Handle same-origin URLs
+      if (new URL(url).origin === baseUrl) return url;
+      // Default redirect to dashboard
       return `${baseUrl}/dashboard`;
     },
   },

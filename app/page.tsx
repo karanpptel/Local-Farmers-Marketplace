@@ -9,7 +9,7 @@ export default function HomePage() {
   const {data: session, status} = useSession({
     required: true,
     onUnauthenticated() {
-      router.push("/api/auth/signin");
+      router.push("/login");
     }
   });
 

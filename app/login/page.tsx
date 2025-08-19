@@ -1,55 +1,99 @@
 "use client";
-
+import {SubmitHandler, useForm} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
+import {SignInSchema, signInSchema} from "@/lib/validations/auth";
 import { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { signIn} from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
-  const [message, setMessage] = useState("");
+
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<SignInSchema>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("");
-    setLoading(true);
+  const onSubmit: SubmitHandler<SignInSchema> = async (data) => {
+    setLoading(true)
 
     try {
       const result = await signIn("credentials", {
-        email: form.email,
-        password: form.password,
+        email: data.email,
+        password: data.password,
         redirect: false,
       });
 
       if (result?.error) {
-        setMessage("Invalid credentials. Please try again.");
+        setError("email", {
+          type: "manual",
+          message: "Invalid email or password. Please try again.",
+        });
       } else {
-        setMessage("Login successful! Redirecting...");
-        // Get the updated session
-        const session = await getSession();
-        console.log("Session after login:", session);
-        
-        // Redirect to dashboard or home
+        // Successful login, redirect to dashboard
         router.push("/dashboard");
       }
     } catch (error) {
-      console.error("Error during login:", error);
-      setMessage("Something went wrong. Please try again later.");
+      console.error("Login error:", error);
+      setError("email", {
+        type: "manual",
+        message: "Login failed. Please check your credentials and try again.",
+      });
     } finally {
       setLoading(false);
     }
-  };
+  }
+  // const [form, setForm] = useState({
+  //   email: "",
+  //   password: "",
+  // });
+  // const [message, setMessage] = useState("");
+  // const [loading, setLoading] = useState(false);
+  // const router = useRouter();
+
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setForm({
+  //     ...form,
+  //     [e.target.name]: e.target.value,
+  //   });
+  // };
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setMessage("");
+  //   setLoading(true);
+
+  //   try {
+  //     const result = await signIn("credentials", {
+  //       email: form.email,
+  //       password: form.password,
+  //       redirect: false,
+  //     });
+
+  //     if (result?.error) {
+  //       setMessage("Invalid credentials. Please try again.");
+  //     } else {
+  //       setMessage("Login successful! Redirecting...");
+  //       // Get the updated session
+  //       const session = await getSession();
+  //       console.log("Session after login:", session);
+        
+  //       // Redirect to dashboard or home
+  //       router.push("/dashboard");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error during login:", error);
+  //     setMessage("Something went wrong. Please try again later.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  
 
   const handleOAuthSignIn = (provider: string) => {
     signIn(provider, { callbackUrl: "/dashboard" });
@@ -60,59 +104,58 @@ export default function LoginPage() {
       <div className="w-96 p-6 shadow-lg rounded-lg bg-white space-y-4">
         <h1 className="text-2xl font-bold text-center">Login</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+           {errors.root && (
+            <p className="text-red-500 text-sm">{errors.root.message}</p>
+          )}
+
+          <Input
             type="email"
-            name="email"
             placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
+            {...register("email")}
             className="w-full p-2 border rounded"
-            required
+        
           />
-
-          <input
+            {errors.email && (<p className="text-red-500 text-sm">{errors.email.message}</p> )}
+          <Input
             type="password"
-            name="password"
             placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
+            {...register("password")}
             className="w-full p-2 border rounded"
-            required
+            
           />
-
-          <button
+          {errors.password && (<p className="text-red-500 text-sm">{errors.password.message}</p> )}
+          <Button
             type="submit"
-            disabled={loading}
+            disabled={isSubmitting}
             className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}
-          </button>
+          </Button>
+
+         
         </form>
 
         <div className="text-center">
           <p className="text-gray-600 mb-2">Or sign in with:</p>
           <div className="space-y-2">
-            <button
+            <Button
               onClick={() => handleOAuthSignIn("github")}
               className="w-full bg-gray-800 text-white p-2 rounded hover:bg-gray-900 transition"
             >
               Sign in with GitHub
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => handleOAuthSignIn("google")}
               className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600 transition"
             >
               Sign in with Google
-            </button>
+            </Button>
           </div>
         </div>
 
-        {message && (
-          <p className={`text-center mt-2 ${message.includes("successful") ? "text-green-500" : "text-red-500"}`}>
-            {message}
-          </p>
-        )}
+       
 
         <div className="text-center">
           <p className="text-gray-600">

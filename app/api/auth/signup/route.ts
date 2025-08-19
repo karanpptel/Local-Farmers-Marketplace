@@ -1,31 +1,42 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
+import { signUpSchema } from "@/lib/validations/auth";
 
 
 export async function POST(request: Request) {  
 try {
-        const { name, email, password, role } = await request.json();
+
+    const body =  await request.json()
+
+    const parsed = signUpSchema.safeParse(body);
+
+    if (!parsed.success) {
+        return NextResponse.json( { error: "Validation error", issues: parsed.error.issues },{ status: 422 });
+    }
     
-        // Validation
-        if (!email || !password) {
-            return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
-        }
+        const { name, email, password, role } = parsed.data;
+        //const { name, email, password, role } = await request.json();
+    
+        // // Validation
+        // if (!email || !password) {
+        //     return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
+        // }
 
-        if (!name) {
-            return NextResponse.json({ error: "Name is required." }, { status: 400 });
-        }
+        // if (!name) {
+        //     return NextResponse.json({ error: "Name is required." }, { status: 400 });
+        // }
 
-        // Validate password strength
-        if (password.length < 6) {
-            return NextResponse.json({ error: "Password must be at least 6 characters long." }, { status: 400 });
-        }
+        // // Validate password strength
+        // if (password.length < 6) {
+        //     return NextResponse.json({ error: "Password must be at least 6 characters long." }, { status: 400 });
+        // }
 
-        // Validate role
-        const validRoles = ["CUSTOMER", "FARMER", "ADMIN"];
-        if (role && !validRoles.includes(role)) {
-            return NextResponse.json({ error: "Invalid role specified." }, { status: 400 });
-        }
+        // // Validate role
+        // const validRoles = ["CUSTOMER", "FARMER", "ADMIN"];
+        // if (role && !validRoles.includes(role)) {
+        //     return NextResponse.json({ error: "Invalid role specified." }, { status: 400 });
+        // }
     
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({

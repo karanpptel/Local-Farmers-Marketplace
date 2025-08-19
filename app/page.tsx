@@ -21,6 +21,16 @@ export default function HomePage() {
     );
   }
 
+  const handleSignOut = async () => {
+    await signOut({
+      callbackUrl: "/login", // Redirect to home page after sign out
+    });
+  };
+
+  const handleSignIn = async () => {
+    await signIn();
+  };
+
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <h1 className="text-4xl font-bold mt-8">Home Page</h1>
@@ -28,12 +38,12 @@ export default function HomePage() {
       {session ? (
         <>
           <p className="mt-4">Signed in as {session.user?.email}</p>
-          <button type="button" className="mt-4" onClick={() => signOut()}>Sign out</button>
+          <button type="button" className="mt-4 px-4 py-2 bg-blue-500 text-white rounded transition" onClick={handleSignOut}>Sign out</button>
         </>
       ) : (
         <>
           <p className="mt-4">Not signed in</p>
-          <button type="button" className="mt-4" onClick={() => signIn()}>Sign in</button>
+          <button type="button" className="mt-4 px-4 py-2 bg-blue-500 text-white rounded transition" onClick={handleSignIn}>Sign in</button>
         </>
       )}
     </div>

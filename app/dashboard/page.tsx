@@ -1,27 +1,28 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/auth";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 
-export default async function DashboardPage() {
-    let session;
+export default function DashboardPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
 
-    try {
-        session = await getServerSession(authOptions);
-    } catch (error) {
-        console.error("Error fetching session:", error);
-        redirect("api/auth/signin");
-    } 
+     useEffect(() => {
+    if (status === "loading") return;
 
     if (!session) {
-        redirect("/api/auth/signin");
+      router.push("/login");
+    } else {
+      const role = session.user.role;
+
+      if (role === "CUSTOMER") router.push("/customer");
+      else if (role === "FARMER") router.push("/farmer");
+      else if (role === "ADMIN") router.push("/admin");
+      else router.push("/login"); // Fallback if role is not recognized
     }
-       
-    return (
-        <div className="flex flex-col items-center justify-center h-screen">
-            <h1 className="text-4xl font-bold mt-8">Dashboard</h1>
-            <p className="mt-4">Signed in as {session.user?.email}</p>
-        </div>
-    )
-  
+  }, [status, session, router]);
+
+  return <p className="text-center mt-20">Loading dashboard...</p>;
 }

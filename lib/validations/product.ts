@@ -12,6 +12,7 @@ export const productCreateSchema = z.object({
   image: z.string().url("Image must be a valid URL").optional(),
 });
 
+
 export const productUpdateSchema = productCreateSchema.partial();
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;

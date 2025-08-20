@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+
 import { prisma } from "@/lib/prisma";
 import { productCreateSchema } from "@/lib/validations/product";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET(req: Request) {
    
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
                 quantity,
                 location,
                 image: image || null,
-                farmerId: (session as any).user.id, // your jwt() sets token.id => session.user.id
+                farmerId:  session.user.id, // your jwt() sets token.id => session.user.id
             },
         });
 

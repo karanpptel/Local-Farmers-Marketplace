@@ -46,7 +46,7 @@ model Product {
   image       String?
   farmer      User     @relation(fields: [farmerId], references: [id])
   farmerId    String
-  orders      Order[]  @relation("OrderProducts")
+  orderItems  OrderItem[] // <-- Opposite relation for OrderItem
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -55,12 +55,46 @@ model Order {
   id          String      @id @default(cuid())
   user        User        @relation(fields: [userId], references: [id])
   userId      String
-  products    Product[]   @relation("OrderProducts")
+  items       OrderItem[]
   totalAmount Decimal     @db.Decimal(10, 2)
   status      OrderStatus @default(PENDING)
-  stripeId    String? // Stripe payment reference
+  payments    Payment[]   // Order can have multiple payments (partial, retry, etc.)
   createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
+
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2) // Price snapshot at order time
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  order          Order    @relation(fields: [orderId], references: [id])
+  orderId        String
+  stripePaymentId String  // Stripe PaymentIntent ID
+  amount         Decimal  @db.Decimal(10, 2)
+  currency       String   @default("usd")
+  status         PaymentStatus @default(PENDING) // maps Stripe payment status
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+
 
 model Notification {
   id        String   @id @default(cuid())
@@ -85,7 +119,7 @@ enum Category {
 
 enum OrderStatus {
   PENDING
-  PAID
+  CONFIRMED
   SHIPPED
   DELIVERED
   CANCELLED

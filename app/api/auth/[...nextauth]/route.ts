@@ -1,3 +1,8 @@
+// console.log("--- DEBUGGING NEXTAUTH ---");
+// console.log("NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
+// console.log("NEXTAUTH_SECRET is set:", !!process.env.NEXTAUTH_SECRET);
+// console.log("--------------------------");
+
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -96,6 +101,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role || "CUSTOMER";
+        token.email = user.email;
+
       }
       return token;
     },
@@ -104,6 +111,10 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string || "CUSTOMER";
+        session.user.email = token.email as string;
+
+       // session.user.name = token.name as string 
+
       }
       return session;
     },
@@ -124,6 +135,8 @@ export const authOptions: NextAuthOptions = {
     newUser: "/signup", // New account creation page
   },
   secret: process.env.NEXTAUTH_SECRET,
+
+  
 };
 
 const handler = NextAuth(authOptions);

@@ -44,7 +44,7 @@ export default function SignUpPage() {
           password: data.password,
           redirect: false,
         });
-
+        
         if (result?.error) {
            setError("email", {
                     type: "manual",
@@ -55,6 +55,7 @@ export default function SignUpPage() {
           }, 1000);
         } else {
           // Successful login, role-based redirect will run automatically
+          router.push("/dashboard");
         }
       } else {
         setError("email", {
@@ -218,7 +219,7 @@ export default function SignUpPage() {
             >
               <option value="CUSTOMER">Customer - Buy from local farmers</option>
               <option value="FARMER">Farmer - Sell your products</option>
-              <option value="ADMIN">Admin</option>
+             
             </select>
           </div>
 

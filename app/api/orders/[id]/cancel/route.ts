@@ -4,7 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { paramsType } from "../route";
 
-
+// This route handles cancelling an order by the customer
 export async function PUT(req: Request, {params} : paramsType) {
 
     const session = await getServerSession(authOptions);

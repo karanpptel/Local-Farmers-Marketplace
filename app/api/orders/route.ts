@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { createOrderSchema } from "@/lib/validations/order";
+import { resend } from "@/lib/email";
 
 
 export async function POST(req: Request) {
@@ -65,6 +66,25 @@ export async function POST(req: Request) {
             },
 
         });
+
+
+        // ✅ Send confirmation email via Resend
+    try {
+      await resend.emails.send({
+        from: "FarmFresh Marketplace <onboarding@resend.dev>", // change this
+        to: session.user.email!, // send to logged-in customer's email
+        subject: "Order Confirmation - Farm Fresh Marketplace",
+        html: `
+          <h2>Thank you for your order!</h2>
+          <p>Your order <b>#${order.id}</b> has been placed successfully.</p>
+          <p>Total Amount: <b>₹${order.totalAmount}</b></p>
+          <p>Status: <b>${order.status}</b></p>
+        `,
+      });
+    } catch (emailErr) {
+      console.error("Email sending failed:", emailErr);
+      // ⚠ Don’t block order creation if email fails
+    }
         
         return NextResponse.json(order, {status: 201});
     } catch (error) {

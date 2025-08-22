@@ -59,6 +59,7 @@ model Order {
   totalAmount Decimal     @db.Decimal(10, 2)
   status      OrderStatus @default(PENDING)
   payments    Payment[]   // Order can have multiple payments (partial, retry, etc.)
+  idempotencyKey String?     @unique // To prevent duplicate orders
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }

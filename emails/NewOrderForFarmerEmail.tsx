@@ -1,6 +1,7 @@
 // emails/NewOrderForFarmerEmail.tsx
 import * as React from "react";
 import { Html, Body, Container, Text, Hr } from "@react-email/components";
+import { prisma } from "@/lib/prisma";
 
 type Item = { name: string; quantity: number };
 export function NewOrderForFarmerEmail(props: {

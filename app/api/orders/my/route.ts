@@ -26,7 +26,7 @@ export async function GET() {
             orderBy: { createdAt: "desc" }, // Order by creation date, most recent first
         });
 
-        return NextResponse.json( orders, { status: 200 });
+        return NextResponse.json( {orders}, { status: 200 });
     } catch (error) {
         console.error("Error fetching orders:", error);
         return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });

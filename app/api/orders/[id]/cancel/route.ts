@@ -9,14 +9,14 @@ export async function PUT(req: Request, {params} : paramsType) {
 
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user?.id) {
+    if (!session || session.user?.role !== "CUSTOMER") {
         return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     try {
         
         const order = await prisma.order.findUnique({
-            where: { id: (await params).id },
+            where: { id: params.id },
         });
 
         if (!order || order.userId !== session.user.id) {
@@ -30,11 +30,13 @@ export async function PUT(req: Request, {params} : paramsType) {
 
 
         const cancelledOrder = await prisma.order.update({
-            where: { id: (await params).id },
+            where: { id: params.id },
             data: { status: "CANCELLED" },
+            include: { user: true, items: { include: { product: true } }, payments: true },
         });
 
-        return NextResponse.json(cancelledOrder, { status: 200 });
+        return NextResponse.json({ message: "Order cancelled successfully", cancelledOrder }, { status: 200 });
+
     } catch (error) {
         console.error("Error cancelling order:", error);
         return NextResponse.json({ error: "Failed to cancel order" }, { status: 500 });

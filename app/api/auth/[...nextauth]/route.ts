@@ -130,6 +130,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages: {
+    //home: "/home",
     signIn: "/login",
     error: "/login", // Error page URL
     newUser: "/signup", // New account creation page

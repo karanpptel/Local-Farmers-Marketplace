@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+export const nextConfig = {
+  images: {
+    domains: ["images.pexels.com"], // ✅ allow Pexels images
+  },
 };
 
 export default nextConfig;
+

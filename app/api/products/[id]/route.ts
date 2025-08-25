@@ -12,7 +12,7 @@ type paramsType = {
 }
 
 export async function PUT(req: Request, { params }: paramsType) {
-    const session = await getServerSession();
+    const session = await getServerSession( authOptions );
 
     if (!session || session.user?.role !== "FARMER") {
         return NextResponse.json({ error: "Only FARMER can update products" }, { status: 403 });

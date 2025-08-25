@@ -10,7 +10,11 @@ export const productCreateSchema = z.object({
   category: z.enum(["FRUITS", "VEGETABLES", "GRAINS", "DAIRY"]),
   location: z.string().trim().min(2, "Location is required"),
   image: z.string().url("Image must be a valid URL").optional(),
+
 });
+
+
+
 
 
 export const productUpdateSchema = productCreateSchema.partial();

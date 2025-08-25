@@ -44,6 +44,7 @@ model Product {
   category    Category
   location    String
   image       String?
+  stock       Int        @default(0)
   farmer      User     @relation(fields: [farmerId], references: [id])
   farmerId    String
   orderItems  OrderItem[] // <-- Opposite relation for OrderItem

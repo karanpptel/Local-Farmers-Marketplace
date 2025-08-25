@@ -3,6 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +19,18 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+import {
+  productUpdateSchema,
+  ProductUpdateInput,
+} from "@/lib/validations/product";
 
 type Product = {
   id: string;
@@ -35,6 +50,9 @@ export default function FarmerDashboard() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState("");
+  const [editingProduct, setEditingProduct] = React.useState<Product | null>(
+    null
+  );
 
   React.useEffect(() => {
     let active = true;
@@ -60,7 +78,7 @@ export default function FarmerDashboard() {
   const totalQuantity = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
   const lowStock = products.filter((p) => p.quantity <= 5).length;
 
-  // Local search (name/description/location)
+  // Local search
   const filtered = products.filter((p) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -125,7 +143,9 @@ export default function FarmerDashboard() {
             <CardTitle className="text-base">Total products</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{loading ? "—" : totalProducts}</div>
+            <div className="text-3xl font-bold">
+              {loading ? "—" : totalProducts}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Items you currently have listed
             </p>
@@ -137,7 +157,9 @@ export default function FarmerDashboard() {
             <CardTitle className="text-base">Total stock</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{loading ? "—" : totalQuantity}</div>
+            <div className="text-3xl font-bold">
+              {loading ? "—" : totalQuantity}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Sum of all product quantities
             </p>
@@ -174,22 +196,26 @@ export default function FarmerDashboard() {
               <Button variant="outline" onClick={() => setQuery("")}>
                 Clear
               </Button>
-              <Button variant="secondary" onClick={() => router.push("/farmer/products")}>
+              <Button
+                variant="secondary"
+                onClick={() => router.push("/farmer/products")}
+              >
                 Go to products
               </Button>
             </div>
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600">Error: {error}</p>
-          )}
+          {error && <p className="text-sm text-red-600">Error: {error}</p>}
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading products…</p>
           ) : recent.length === 0 ? (
             <div className="text-sm text-muted-foreground">
               No products found. Try adjusting your search or{" "}
-              <Link href="/farmer/products/new" className="underline underline-offset-4">
+              <Link
+                href="/farmer/products/new"
+                className="underline underline-offset-4"
+              >
                 add a new one
               </Link>
               .
@@ -199,6 +225,7 @@ export default function FarmerDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">Image</TableHead>
                     <TableHead className="min-w-[180px]">Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Price</TableHead>
@@ -210,6 +237,18 @@ export default function FarmerDashboard() {
                 <TableBody>
                   {recent.map((p) => (
                     <TableRow key={p.id}>
+                      <TableCell>
+                        <Image
+                          src={
+                            p.image?.trim() ||
+                            "https://images.pexels.com/photos/5629818/pexels-photo-5629818.jpeg"
+                          }
+                          alt={p.name}
+                          width={50}
+                          height={50}
+                          className="rounded-md object-cover"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">{p.category}</Badge>
@@ -219,9 +258,13 @@ export default function FarmerDashboard() {
                       <TableCell className="truncate">{p.location}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Link href={`/farmer/products/${p.id}/edit`}>
-                            <Button size="sm" variant="outline">Edit</Button>
-                          </Link>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingProduct(p)}
+                          >
+                            Edit
+                          </Button>
                           <Button
                             size="sm"
                             variant="destructive"
@@ -239,6 +282,97 @@ export default function FarmerDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      <EditProductDialog
+        product={editingProduct}
+        onClose={() => setEditingProduct(null)}
+        onSaved={(updated) => {
+          setProducts((prev) =>
+            prev.map((p) => (p.id === updated.id ? updated : p))
+          );
+        }}
+      />
     </div>
+  );
+}
+
+// ✅ Modal Component
+function EditProductDialog({
+  product,
+  onClose,
+  onSaved,
+}: {
+  product: Product | null;
+  onClose: () => void;
+  onSaved: (p: Product) => void;
+}) {
+  const form = useForm<ProductUpdateInput>({
+    resolver: zodResolver(productUpdateSchema),
+    defaultValues: product ?? {},
+  });
+
+  React.useEffect(() => {
+    if (product) {
+      form.reset(product);
+    }
+  }, [product, form]);
+
+  const onSubmit: SubmitHandler<ProductUpdateInput> = async (values) => {
+
+    if (!product) return;
+    const res = await fetch(`/api/products/${product.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      alert(j?.error || "Update failed");
+      return;
+    }
+
+    const { product: updated } = await res.json(); // ✅ your API returns { product }
+    onSaved(updated);
+    onClose();
+  };
+
+  return (
+    <Dialog open={!!product} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Product</DialogTitle>
+        </DialogHeader>
+
+        {product && (
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Name</label>
+              <Input type="text" {...form.register("name") } />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Price</label>
+              <Input type="number" {...form.register("price")} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Quantity</label>
+              <Input type="number" {...form.register("quantity")} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Location</label>
+              <Input type="text" {...form.register("location")} />
+            </div>
+
+            <DialogFooter>
+              <Button type="submit">Save</Button>
+              <Button type="button" variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

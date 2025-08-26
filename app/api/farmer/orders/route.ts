@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
-
+// this api route is used show all orders on farmers
 export async function GET() {
     const session = await getServerSession(authOptions);
 

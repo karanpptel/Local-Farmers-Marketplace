@@ -35,6 +35,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Validation error", issues: parsed.error.issues }, { status: 422 });
     }
 
+
+    
+
     const idempotencyKey = req.headers.get("idempotency-key");
     if (!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
       return NextResponse.json({ error: "Valid idempotency-key header required" }, { status: 400 });
@@ -61,27 +64,30 @@ export async function POST(req: Request) {
       return { productId: item.productId, quantity: item.quantity, price: product.price };
     });
 
-    // Create order & update stock atomically
-    const order = await prisma.$transaction(async (tx) => {
-      for (const item of parsed.data.products) {
-        const updated = await tx.product.update({
-          where: { id: item.productId, stock: { gte: item.quantity } },
-          data: { quantity: { decrement: item.quantity } },
-        });
-        if (!updated) throw new Error(`Insufficient stock for product ${item.productId}`);
-      }
+      // Create order & update stock atomically
+          const order = await prisma.$transaction(async (tx) => {
+        for (const item of parsed.data.products) {
+          const updated = await tx.product.updateMany({
+            where: { id: item.productId, stock: { gte: item.quantity } },
+            data: { stock: { decrement: item.quantity } },
+          });
+          if (updated.count === 0) {
+            throw new Error(`Insufficient stock for product ${item.productId}`);
+          }
+        }
 
-      return await tx.order.create({
-        data: {
-          userId: session.user.id,
-          totalAmount,
-          status: "PENDING",
-          idempotencyKey,
-          items: { create: orderItemsData },
-        },
-        include: { items: true },
+        return await tx.order.create({
+          data: {
+            userId: session.user.id,
+            totalAmount,
+            status: "PENDING",
+            idempotencyKey,
+            items: { create: orderItemsData },
+          },
+          include: { items: true },
+        });
       });
-    });
+
 
     // Multi-farmer emails
     const farmerMap = new Map<string, { email: string; items: any[] }>();

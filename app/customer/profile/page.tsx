@@ -1,100 +1,108 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-export default function CustomerProfilePage() {
-  const [profile, setProfile] = useState({
-    name: "Karan Patel",
-    email: "karan@example.com",
-    phone: "9876543210",
-    address: "Ahmedabad, Gujarat, India",
+type Customer = {
+  name: string;
+  email: string;
+  phone?: string;
+};
+
+export default function ProfilePage() {
+  const [customer, setCustomer] = useState<Customer>({
+    name: "",
+    email: "",
+    phone: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  const [isEditing, setIsEditing] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch("/api/customers/me");
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      const data = await res.json();
+      setCustomer(data.customer);
+    } catch (err) {
+      toast.error("Error fetching profile");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // TODO: Call API to save profile in DB
-    console.log("Profile saved:", profile);
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    try {
+      const res = await fetch("/api/customers/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(customer),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      toast.success("Profile updated successfully!");
+    } catch {
+      toast.error("Failed to update profile");
+    } finally {
+      setUpdating(false);
+    }
   };
+
+  if (loading) return <p className="p-6 text-gray-600">Loading profile...</p>;
 
   return (
-    <div className="p-6 flex justify-center">
-      <Card className="w-full max-w-lg shadow-lg">
+    <div className="p-6 max-w-md mx-auto space-y-6">
+      <h1 className="text-2xl font-bold">Your Profile</h1>
+
+      <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">My Profile</CardTitle>
+          <CardTitle>Profile Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Name */}
           <div>
-            <Label htmlFor="name">Name</Label>
+            <label className="text-sm font-medium">Name</label>
             <Input
-              id="name"
-              name="name"
-              value={profile.name}
-              onChange={handleChange}
-              disabled={!isEditing}
+              value={customer.name}
+              onChange={(e) =>
+                setCustomer((prev) => ({ ...prev, name: e.target.value }))
+              }
+              className="mt-1"
             />
           </div>
 
-          {/* Email */}
           <div>
-            <Label htmlFor="email">Email</Label>
+            <label className="text-sm font-medium">Email</label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              value={profile.email}
-              disabled
-            />
-            <p className="text-xs text-gray-500">Email cannot be changed</p>
-          </div>
-
-          {/* Phone */}
-          <div>
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={profile.phone}
-              onChange={handleChange}
-              disabled={!isEditing}
+              value={customer.email}
+              onChange={(e) =>
+                setCustomer((prev) => ({ ...prev, email: e.target.value }))
+              }
+              className="mt-1"
             />
           </div>
 
-          {/* Address */}
           <div>
-            <Label htmlFor="address">Address</Label>
+            <label className="text-sm font-medium">Phone</label>
             <Input
-              id="address"
-              name="address"
-              value={profile.address}
-              onChange={handleChange}
-              disabled={!isEditing}
+              value={customer.phone || ""}
+              onChange={(e) =>
+                setCustomer((prev) => ({ ...prev, phone: e.target.value }))
+              }
+              className="mt-1"
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4">
-            {isEditing ? (
-              <>
-                <Button variant="secondary" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>Save</Button>
-              </>
-            ) : (
-              <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-            )}
-          </div>
+          <Button onClick={handleUpdate} disabled={updating} className="w-full">
+            {updating ? "Updating..." : "Update Profile"}
+          </Button>
         </CardContent>
       </Card>
     </div>

@@ -1,87 +1,132 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+type OrderItem = {
+  productId: {
+    name: string;
+    price: number;
+    image?: string;
+  };
+  quantity: number;
+};
 
 type Order = {
-  id: number;
-  date: string;
-  items: string[];
-  total: number;
-  status: "Delivered" | "Pending" | "Shipped" | "Cancelled";
+  _id: string;
+  items: OrderItem[];
+  status: "PENDING" | "CONFIRMED" | "DELIVERED" | "CANCELLED";
+  createdAt: string;
 };
 
 export default function OrdersPage() {
-  const [orders] = useState<Order[]>([
-    {
-      id: 101,
-      date: "2025-08-18",
-      items: ["Fresh Tomatoes", "Milk (1L)"],
-      total: 300,
-      status: "Delivered",
-    },
-    {
-      id: 102,
-      date: "2025-08-19",
-      items: ["Organic Apples"],
-      total: 250,
-      status: "Pending",
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getStatusColor = (status: Order["status"]) => {
-    switch (status) {
-      case "Delivered":
-        return "bg-green-500 text-white";
-      case "Pending":
-        return "bg-yellow-500 text-white";
-      case "Shipped":
-        return "bg-blue-500 text-white";
-      case "Cancelled":
-        return "bg-red-500 text-white";
-      default:
-        return "bg-gray-500 text-white";
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch("/api/orders/my");
+      if (!res.ok) throw new Error("Failed to fetch orders");
+      const data = await res.json();
+      setOrders(data.orders || []);
+    } catch (err) {
+      toast.error("Error fetching orders");
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">My Orders</h1>
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Order ID</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Items</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {orders.map((order) => (
-            <TableRow key={order.id}>
-              <TableCell>#{order.id}</TableCell>
-              <TableCell>{order.date}</TableCell>
-              <TableCell>{order.items.join(", ")}</TableCell>
-              <TableCell>₹{order.total}</TableCell>
-              <TableCell>
-                <Badge className={getStatusColor(order.status)}>
-                  {order.status}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+  if (loading) return <p className="p-6 text-gray-600">Loading orders...</p>;
+
+  if (orders.length === 0)
+    return <p className="p-6 text-gray-600">No orders found.</p>;
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Your Orders</h1>
+
+      <div className="space-y-4">
+        {orders.map((order) => {
+          const total = order.items.reduce(
+            (acc, item) => acc + item.productId.price * item.quantity,
+            0
+          );
+
+          return (
+            <Card key={order._id} className="shadow-lg">
+              <CardHeader>
+                <CardTitle>
+                  Order #{order._id.slice(-6)} - {order.status}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  Placed on: {new Date(order.createdAt).toLocaleString()}
+                </p>
+
+                <div className="space-y-2">
+                  {order.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        {item.productId.image && (
+                          <img
+                            src={item.productId.image}
+                            alt={item.productId.name}
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        )}
+                        <div>
+                          <p className="font-semibold">{item.productId.name}</p>
+                          <p className="text-sm text-gray-600">
+                            ₹{item.productId.price} x {item.quantity}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="font-semibold">
+                        ₹{item.productId.price * item.quantity}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-between items-center mt-2">
+                  <p className="font-semibold">Total: ₹{total}</p>
+                  {order.status === "PENDING" && (
+                    <Button
+                      variant="destructive"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(
+                            `/api/orders/${order._id}/cancel`,
+                            { method: "POST" }
+                          );
+                          if (!res.ok) throw new Error("Cancel failed");
+                          toast.success("Order cancelled");
+                          fetchOrders();
+                        } catch {
+                          toast.error("Failed to cancel order");
+                        }
+                      }}
+                    >
+                      Cancel Order
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

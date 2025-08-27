@@ -7,7 +7,7 @@ import { authOptions } from "../auth/[...nextauth]/route";
 export async function GET(req: Request) {
    
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get("q")?.trim();
+    const q = (searchParams.get("q") || searchParams.get("search"))?.trim();
     const category = searchParams.get("category") as | "FRUITS" | "VEGETABLES" | "GRAINS" | "DAIRY" | null;
 
     try {
@@ -25,14 +25,18 @@ export async function GET(req: Request) {
                         }
                         : {},
                     category ? { category } : {},
-                    { quantity: { gt: 0 } },
+                    { stock: { gt: 0 } },
+
     
                 ],
             },
             orderBy: { createdAt: "desc" },
         });
 
-        return NextResponse.json(products);
+        return NextResponse.json({
+            products, 
+            totalPages: 1
+        });
         
     } catch (error) {
         console.error("Error fetching products:", error);
@@ -56,7 +60,7 @@ export async function POST(req: Request) {
         return NextResponse.json( { error: "Validation error", issues: parsed.error.issues },{ status: 422 });
     }
 
-    const { name, description, category, quantity, price, location , image } = parsed.data;
+    const { name, description, category, stock, price, location , image } = parsed.data;
 
     try {
         const product = await prisma.product.create({
@@ -65,7 +69,8 @@ export async function POST(req: Request) {
                 description : description || "",
                 price, // Prisma accepts number for Decimal
                 category,
-                quantity,
+                stock,
+                quantity: stock,
                 location,
                 image: image || null,
                 farmerId:  session.user.id, // your jwt() sets token.id => session.user.id

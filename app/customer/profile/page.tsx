@@ -1,108 +1,111 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
-type Customer = {
-  name: string;
-  email: string;
-  phone?: string;
-};
-
-export default function ProfilePage() {
-  const [customer, setCustomer] = useState<Customer>({
-    name: "",
-    email: "",
-    phone: "",
-  });
+export default function CustomerProfilePage() {
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/customers/me");
-      if (!res.ok) throw new Error("Failed to fetch profile");
-      const data = await res.json();
-      setCustomer(data.customer);
-    } catch (err) {
-      toast.error("Error fetching profile");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch("/api/me");
+        if (!res.ok) throw new Error("Failed to fetch profile");
+        const json = await res.json();
+        setData(json);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchProfile();
   }, []);
 
-  const handleUpdate = async () => {
-    setUpdating(true);
-    try {
-      const res = await fetch("/api/customers/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(customer),
-      });
-      if (!res.ok) throw new Error("Update failed");
-      toast.success("Profile updated successfully!");
-    } catch {
-      toast.error("Failed to update profile");
-    } finally {
-      setUpdating(false);
-    }
-  };
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (!data || data.error) return <p className="text-center mt-10">No profile data found.</p>;
 
-  if (loading) return <p className="p-6 text-gray-600">Loading profile...</p>;
+  const { user, products, orders } = data;
 
   return (
-    <div className="p-6 max-w-md mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Your Profile</h1>
-
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Profile Info */}
       <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Profile Details</CardTitle>
+        <CardHeader className="flex items-center space-x-4">
+          <Avatar className="w-16 h-16">
+            <AvatarImage src={user.image || ""} />
+            <AvatarFallback>{user.name?.[0] || "U"}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle>{user.name || "Unnamed Customer"}</CardTitle>
+            <p className="text-sm text-gray-500">{user.email}</p>
+            <Badge variant="outline" className="mt-2">
+              {user.role}
+            </Badge>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Name</label>
-            <Input
-              value={customer.name}
-              onChange={(e) =>
-                setCustomer((prev) => ({ ...prev, name: e.target.value }))
-              }
-              className="mt-1"
-            />
-          </div>
+      </Card>
 
-          <div>
-            <label className="text-sm font-medium">Email</label>
-            <Input
-              value={customer.email}
-              onChange={(e) =>
-                setCustomer((prev) => ({ ...prev, email: e.target.value }))
-              }
-              className="mt-1"
-            />
-          </div>
+      {/* Orders Section */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>My Orders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {orders && orders.length > 0 ? (
+            <div className="space-y-4">
+              {orders.map((order: any) => (
+                <div key={order.id} className="p-3 border rounded-lg">
+                  <div className="flex justify-between">
+                    <p className="font-medium">Order #{order.id}</p>
+                    <Badge
+                      variant={
+                        order.status === "PENDING"
+                          ? "outline"
+                          : order.status === "CANCELLED"
+                          ? "destructive"
+                          : "default"
+                      }
+                    >
+                      {order.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Placed on {new Date(order.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No orders found.</p>
+          )}
+        </CardContent>
+      </Card>
 
-          <div>
-            <label className="text-sm font-medium">Phone</label>
-            <Input
-              value={customer.phone || ""}
-              onChange={(e) =>
-                setCustomer((prev) => ({ ...prev, phone: e.target.value }))
-              }
-              className="mt-1"
-            />
-          </div>
-
-          <Button onClick={handleUpdate} disabled={updating} className="w-full">
-            {updating ? "Updating..." : "Update Profile"}
-          </Button>
+      {/* Products Section */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>My Products</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {products && products.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {products.map((product: any) => (
+                <div key={product.id} className="p-3 border rounded-lg">
+                  <p className="font-medium">{product.name}</p>
+                  <p className="text-sm text-gray-500">
+                    Price: ₹{product.price}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No products found.</p>
+          )}
         </CardContent>
       </Card>
     </div>

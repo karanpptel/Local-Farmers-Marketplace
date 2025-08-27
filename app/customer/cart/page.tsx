@@ -83,9 +83,16 @@ export default function CartPage() {
       });
 
       if (!res.ok) throw new Error("Failed to place order");
-      await fetchCart(); // clear cart after order
-      toast.success("Order placed successfully!");
-    } catch {
+      const data = await res.json();
+
+      // ✅ Redirect to /checkout/[orderId]
+      if (data?.id) {
+        window.location.href = `/checkout/${data.id}`;
+      } else {
+        toast.error("Order created but no ID returned");
+      }
+    } catch (err) {
+      console.error(err);
       toast.error("Checkout failed");
     } finally {
       setLoading(false);
@@ -128,18 +135,14 @@ export default function CartPage() {
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
-                      onClick={() =>
-                        updateQuantity(item.id, item.quantity - 1)
-                      }
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
                     >
                       -
                     </Button>
                     <span>{item.quantity}</span>
                     <Button
                       variant="outline"
-                      onClick={() =>
-                        updateQuantity(item.id, item.quantity + 1)
-                      }
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
                     >
                       +
                     </Button>

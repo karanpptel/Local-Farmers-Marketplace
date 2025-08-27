@@ -28,7 +28,7 @@ export default function NewProductPage() {
       name: "",
       description: "",
       price: 0,
-      quantity: 0,
+      stock: 0,
       category: "FRUITS",
       location: "",
       image: "",
@@ -119,9 +119,9 @@ export default function NewProductPage() {
 
             {/* Quantity */}
             <div>
-              <label className="block mb-1 text-sm font-medium">Quantity</label>
-              <Input type="number" {...register("quantity", { valueAsNumber: true })} />
-              {errors.quantity && <p className="text-red-500 text-sm">{errors.quantity.message}</p>}
+              <label className="block mb-1 text-sm font-medium">Stock</label>
+              <Input type="number" {...register("stock", { valueAsNumber: true })} />
+              {errors.stock && <p className="text-red-500 text-sm">{errors.stock.message}</p>}
             </div>
 
             {/* Category */}

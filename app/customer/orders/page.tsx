@@ -7,16 +7,16 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 type OrderItem = {
-  productId: {
+  product: {
     name: string;
-    price: number;
     image?: string;
   };
   quantity: number;
+  price: number; // use snapshot
 };
 
 type Order = {
-  _id: string;
+  id: string;
   items: OrderItem[];
   status: "PENDING" | "CONFIRMED" | "DELIVERED" | "CANCELLED";
   createdAt: string;
@@ -55,15 +55,15 @@ export default function OrdersPage() {
       <div className="space-y-4">
         {orders.map((order) => {
           const total = order.items.reduce(
-            (acc, item) => acc + item.productId.price * item.quantity,
+            (acc, item) => acc + item.price * item.quantity,
             0
           );
 
           return (
-            <Card key={order._id} className="shadow-lg">
+            <Card key={order.id} className="shadow-lg">
               <CardHeader>
                 <CardTitle>
-                  Order #{order._id.slice(-6)} - {order.status}
+                  Order #{order.id.slice(-6)} - {order.status}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -72,28 +72,28 @@ export default function OrdersPage() {
                 </p>
 
                 <div className="space-y-2">
-                  {order.items.map((item, idx) => (
+                  {order.items.map((item) => (
                     <div
-                      key={idx}
+                      key={`${item.product.name}-${item.quantity}`}
                       className="flex items-center justify-between gap-4"
                     >
                       <div className="flex items-center gap-2">
-                        {item.productId.image && (
+                        {item.product.image && (
                           <img
-                            src={item.productId.image}
-                            alt={item.productId.name}
+                            src={item.product.image}
+                            alt={item.product.name}
                             className="w-12 h-12 object-cover rounded"
                           />
                         )}
                         <div>
-                          <p className="font-semibold">{item.productId.name}</p>
+                          <p className="font-semibold">{item.product.name}</p>
                           <p className="text-sm text-gray-600">
-                            ₹{item.productId.price} x {item.quantity}
+                            ₹{item.price} x {item.quantity}
                           </p>
                         </div>
                       </div>
                       <p className="font-semibold">
-                        ₹{item.productId.price * item.quantity}
+                        ₹{item.price * item.quantity}
                       </p>
                     </div>
                   ))}
@@ -107,8 +107,10 @@ export default function OrdersPage() {
                       onClick={async () => {
                         try {
                           const res = await fetch(
-                            `/api/orders/${order._id}/cancel`,
-                            { method: "POST" }
+                            `/api/orders/${order.id}/cancel`,
+                            {
+                              method: "POST",
+                            }
                           );
                           if (!res.ok) throw new Error("Cancel failed");
                           toast.success("Order cancelled");

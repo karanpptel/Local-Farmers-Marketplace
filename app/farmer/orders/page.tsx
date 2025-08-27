@@ -215,11 +215,16 @@ export default function FarmerOrders() {
 
           <div className="space-y-4">
             <Select value={newStatus} onValueChange={setNewStatus}>
-              {STATUS_OPTIONS.filter((s) => s !== "ALL").map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.filter((s) => s !== "ALL").map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
 

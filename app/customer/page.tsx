@@ -48,8 +48,12 @@ export default function CustomerPage() {
       try {
         const res = await fetch("/api/products");
         const data = await res.json();
-        setProducts(data);
-        setFilteredProducts(data);
+
+       // console.log('data:', data);
+
+        setProducts(data.products);
+        setFilteredProducts(data.products);
+
       } catch (error) {
         console.error("Error fetching products:", error);
       }
@@ -65,6 +69,11 @@ export default function CustomerPage() {
     if (filterCategory && filterCategory !== "ALL") {
       filtered = filtered.filter((p) => p.category === filterCategory);
     }
+
+     console.log('products:', products);
+console.log('search:', search);
+console.log('filterCategory:', filterCategory);
+
     setFilteredProducts(filtered);
   }, [search, filterCategory, products]);
 
@@ -116,6 +125,7 @@ export default function CustomerPage() {
     }
   }
 
+  console.log('filteredProducts:', filteredProducts);
   return (
     <div className="p-6 space-y-6">
       {/* Search & Filter */}

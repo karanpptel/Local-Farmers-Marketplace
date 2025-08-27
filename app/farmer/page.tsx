@@ -37,7 +37,7 @@ type Product = {
   name: string;
   description?: string | null;
   price: number | string;
-  quantity: number;
+  stock: number;
   category: "FRUITS" | "VEGETABLES" | "GRAINS" | "DAIRY";
   location: string;
   image?: string | null;
@@ -75,8 +75,8 @@ export default function FarmerDashboard() {
 
   // Derived stats
   const totalProducts = products.length;
-  const totalQuantity = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
-  const lowStock = products.filter((p) => p.quantity <= 5).length;
+  const totalQuantity = products.reduce((sum, p) => sum + (p.stock || 0), 0);
+  const lowStock = products.filter((p) => p.stock <= 5).length;
 
   // Local search
   const filtered = products.filter((p) => {
@@ -254,7 +254,7 @@ export default function FarmerDashboard() {
                         <Badge variant="secondary">{p.category}</Badge>
                       </TableCell>
                       <TableCell>{formatCurrency(p.price)}</TableCell>
-                      <TableCell>{p.quantity}</TableCell>
+                      <TableCell>{p.stock}</TableCell>
                       <TableCell className="truncate">{p.location}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
@@ -309,12 +309,13 @@ function EditProductDialog({
 }) {
   const form = useForm<ProductUpdateInput>({
     resolver: zodResolver(productUpdateSchema),
-    defaultValues: product ?? {},
+    defaultValues: product ? productUpdateSchema.parse(product)  : {},
+
   });
 
   React.useEffect(() => {
     if (product) {
-      form.reset(product);
+      form.reset(productUpdateSchema.parse(product));
     }
   }, [product, form]);
 
@@ -356,8 +357,8 @@ function EditProductDialog({
               <Input type="number" {...form.register("price")} />
             </div>
             <div>
-              <label className="block text-sm font-medium">Quantity</label>
-              <Input type="number" {...form.register("quantity")} />
+              <label className="block text-sm font-medium">Stock</label>
+              <Input type="number" {...form.register("stock")} />
             </div>
             <div>
               <label className="block text-sm font-medium">Location</label>

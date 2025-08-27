@@ -6,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (!session || session.user?.role !== "CUSTOMER") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
 
@@ -17,7 +17,7 @@ export async function GET() {
             include: {
                 items: {
                     include: {
-                        product: true, // Include product details in the order items
+                        product: { select: { name: true, image: true, price: true } }, // Include product details in the order items
                     },
                    
                 },
@@ -26,7 +26,7 @@ export async function GET() {
             orderBy: { createdAt: "desc" }, // Order by creation date, most recent first
         });
 
-        return NextResponse.json( {orders}, { status: 200 });
+        return NextResponse.json( { orders }, { status: 200 });
     } catch (error) {
         console.error("Error fetching orders:", error);
         return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });

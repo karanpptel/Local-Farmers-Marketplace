@@ -69,6 +69,7 @@ export default function ProductsPage() {
             <SelectValue placeholder="Filter by category" />
           </SelectTrigger>
           <SelectContent>
+
             <SelectItem value="FRUITS">Fruits</SelectItem>
             <SelectItem value="VEGETABLES">Vegetables</SelectItem>
             <SelectItem value="GRAINS">Grains</SelectItem>
@@ -110,7 +111,7 @@ export default function ProductsPage() {
                   {p.quantity} available • {p.category}
                 </p>
                 <p className="text-xs text-muted-foreground">{p.location}</p>
-                <Button className="w-full mt-2">Order Now</Button>
+                
               </CardContent>
             </Card>
           ))}

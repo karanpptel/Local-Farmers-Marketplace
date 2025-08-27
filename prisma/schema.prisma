@@ -76,6 +76,10 @@ model OrderItem {
   productId String
   quantity  Int
   price     Decimal  @db.Decimal(10, 2) // Price snapshot at order time
+
+  createdAt   DateTime    @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
 }
 
 model CartItem {
